@@ -87,8 +87,8 @@ class _AuthScreenState extends State<AuthScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF90CAF9),
-              Color(0xFF1976D2),
+              Color(0xFFFFF8E1), // 연노랑
+              Color(0xFFFFA000), // 노란 주황
             ],
           ),
         ),
@@ -114,17 +114,17 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                   child: const Icon(
                     Icons.forum,
-                    color: Color(0xFF1976D2),
+                    color: Color(0xFFD32F2F), // 진한 빨강
                     size: 48,
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Korea Board',
-                  style: TextStyle(
+                  'Korea Is Over',
+                  style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white.withOpacity(0.95),
+                    color: Color(0xFFD32F2F),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -167,11 +167,11 @@ class _AuthScreenState extends State<AuthScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFF1976D2), width: 2),
+                                    color: Color(0xFFD32F2F), width: 2),
                               ),
                               filled: true,
                               fillColor: _isEmailFocused
-                                  ? Colors.blue[50]
+                                  ? Color(0xFFFFF8E1)
                                   : Colors.grey[50],
                             ),
                             keyboardType: TextInputType.emailAddress,
@@ -204,11 +204,11 @@ class _AuthScreenState extends State<AuthScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: const BorderSide(
-                                    color: Color(0xFF1976D2), width: 2),
+                                    color: Color(0xFFD32F2F), width: 2),
                               ),
                               filled: true,
                               fillColor: _isPasswordFocused
-                                  ? Colors.blue[50]
+                                  ? Color(0xFFFFF8E1)
                                   : Colors.grey[50],
                             ),
                             obscureText: true,
@@ -230,7 +230,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           child: ElevatedButton(
                             onPressed: _handleAuth,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1976D2),
+                              backgroundColor: const Color(0xFFD32F2F),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
@@ -264,7 +264,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                     ? '계정이 없으신가요? 회원가입'
                                     : '이미 계정이 있으신가요? 로그인',
                                 style: const TextStyle(
-                                  color: Color(0xFF1976D2),
+                                  color: Color(0xFFD32F2F),
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),

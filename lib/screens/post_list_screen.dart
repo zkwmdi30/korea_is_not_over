@@ -96,10 +96,10 @@ class _PostListScreenState extends State<PostListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: const Color(0xFFFFF8E1), // 연노랑
       appBar: AppBar(
         title: const Text('게시판'),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFFA000), // 노란 주황
         elevation: 0,
         actions: [
           IconButton(
@@ -114,13 +114,13 @@ class _PostListScreenState extends State<PostListScreen> {
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    Colors.white,
-                    Colors.grey[100]!,
+                    Color(0xFFFFF8E1), // 연노랑
+                    Color(0xFFFFA000), // 노란 주황
                   ],
                 ),
               ),
@@ -165,7 +165,7 @@ class _PostListScreenState extends State<PostListScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[600],
+                                    color: Color(0xFFD32F2F), // 진한 빨강
                                   ),
                                 ),
                               ),
@@ -180,7 +180,9 @@ class _PostListScreenState extends State<PostListScreen> {
                                   MediaQuery.of(context).size.width * 0.75,
                             ),
                             decoration: BoxDecoration(
-                              color: isMe ? Colors.blue[100] : Colors.white,
+                              color: isMe
+                                  ? Color(0xFFFFCDD2)
+                                  : Colors.white, // 연빨강/흰색
                               borderRadius: BorderRadius.only(
                                 topLeft: const Radius.circular(16),
                                 topRight: const Radius.circular(16),
@@ -205,7 +207,7 @@ class _PostListScreenState extends State<PostListScreen> {
                                     style: TextStyle(
                                       fontSize: 16,
                                       color: isMe
-                                          ? Colors.blue[900]
+                                          ? Color(0xFFD32F2F)
                                           : Colors.black87,
                                     ),
                                   ),
@@ -214,7 +216,7 @@ class _PostListScreenState extends State<PostListScreen> {
                                     _formatDate(post.createdAt),
                                     style: TextStyle(
                                       fontSize: 11,
-                                      color: Colors.grey[600],
+                                      color: Color(0xFFFFA000), // 노란 주황
                                     ),
                                   ),
                                 ],
@@ -248,7 +250,7 @@ class _PostListScreenState extends State<PostListScreen> {
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
                                     fontSize: 10,
-                                    color: Colors.grey[600],
+                                    color: Color(0xFFD32F2F),
                                   ),
                                 ),
                               ),
@@ -264,7 +266,7 @@ class _PostListScreenState extends State<PostListScreen> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Color(0xFFFFA000), // 노란 주황
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
@@ -287,11 +289,12 @@ class _PostListScreenState extends State<PostListScreen> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: Color(0xFFFFF8E1), // 연노랑
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
-                            color:
-                                _isFocused ? Colors.blue : Colors.transparent,
+                            color: _isFocused
+                                ? Color(0xFFD32F2F)
+                                : Colors.transparent,
                             width: 1,
                           ),
                         ),
@@ -302,7 +305,7 @@ class _PostListScreenState extends State<PostListScreen> {
                             hintText: '메시지를 입력하세요...',
                             border: InputBorder.none,
                             hintStyle: TextStyle(
-                              color: Colors.grey[600],
+                              color: Color(0xFFD32F2F),
                               fontSize: 16,
                             ),
                           ),
@@ -321,7 +324,7 @@ class _PostListScreenState extends State<PostListScreen> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.blue,
+                      color: Color(0xFFD32F2F), // 진한 빨강
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: IconButton(
