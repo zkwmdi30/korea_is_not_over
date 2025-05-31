@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:math';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -17,11 +16,13 @@ class _AuthScreenState extends State<AuthScreen> {
   final supabase = Supabase.instance.client;
   bool _isEmailFocused = false;
   bool _isPasswordFocused = false;
+  final _passwordFocusNode = FocusNode();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordFocusNode.dispose();
     super.dispose();
   }
 
@@ -175,6 +176,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                   : Colors.grey[50],
                             ),
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            onFieldSubmitted: (_) {
+                              FocusScope.of(context)
+                                  .requestFocus(_passwordFocusNode);
+                            },
                             validator: (value) {
                               if (value == null || value.isEmpty) {
                                 return '이메일을 입력해주세요';
@@ -211,6 +217,11 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ? Color(0xFFFFF8E1)
                                   : Colors.grey[50],
                             ),
+                            focusNode: _passwordFocusNode,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) {
+                              _handleAuth();
+                            },
                             obscureText: true,
                             validator: (value) {
                               if (value == null || value.isEmpty) {

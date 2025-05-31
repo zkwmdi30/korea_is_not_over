@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/post.dart';
 import 'dart:collection';
+import 'dart:ui';
+import 'post_detail_screen.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 class PostListScreen extends StatefulWidget {
   const PostListScreen({super.key});
@@ -19,6 +22,8 @@ class _PostListScreenState extends State<PostListScreen> {
   final _contentController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isFocused = false;
+  final Map<String, int> _commentCounts = {};
+  final Set<int> _visiblePostIds = {};
 
   @override
   void initState() {
@@ -58,6 +63,7 @@ class _PostListScreenState extends State<PostListScreen> {
           _userEmails[profile['id']] = profile['email'] ?? '';
         }
       });
+      await fetchCommentCounts(postList.map((e) => e.id).toList());
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (_scrollController.hasClients) {
           _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
@@ -67,6 +73,31 @@ class _PostListScreenState extends State<PostListScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('게시물을 불러오는데 실패했습니다: $e')),
       );
+    }
+  }
+
+  Future<void> fetchCommentCounts(List<int> postIds) async {
+    if (postIds.isEmpty) return;
+    try {
+      final response = await supabase
+          .from('comments')
+          .select('post_id, id')
+          .inFilter('post_id', postIds);
+      final List data = response ?? [];
+      final Map<String, int> counts = {};
+      for (final postId in postIds) {
+        counts[postId.toString()] = 0;
+      }
+      for (final row in data) {
+        final postId = row['post_id'].toString();
+        counts[postId] = (counts[postId] ?? 0) + 1;
+      }
+      setState(() {
+        _commentCounts.clear();
+        _commentCounts.addAll(counts);
+      });
+    } catch (e) {
+      // ignore error for now
     }
   }
 
@@ -96,14 +127,21 @@ class _PostListScreenState extends State<PostListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1), // 연노랑
+      backgroundColor: Color(0xFFFFF8E1), // 미니멀 연노랑
       appBar: AppBar(
-        title: const Text('게시판'),
-        backgroundColor: const Color(0xFFFFA000), // 노란 주황
-        elevation: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.local_fire_department, color: Color(0xFFFF6F00)),
+            SizedBox(width: 8),
+            const Text('게시판'),
+          ],
+        ),
+        backgroundColor: Color(0xFFFFF8E1), // 미니멀 연노랑
+        elevation: 0.5,
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Color(0xFFFF6F00)),
             onPressed: () async {
               await supabase.auth.signOut();
             },
@@ -114,16 +152,7 @@ class _PostListScreenState extends State<PostListScreen> {
         children: [
           Expanded(
             child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xFFFFF8E1), // 연노랑
-                    Color(0xFFFFA000), // 노란 주황
-                  ],
-                ),
-              ),
+              color: Color(0xFFFFFDF8), // 거의 화이트에 가까운 미니멀 배경
               child: ListView.builder(
                 controller: _scrollController,
                 padding:
@@ -133,131 +162,191 @@ class _PostListScreenState extends State<PostListScreen> {
                   final post = posts[index];
                   final isMe = post.authorId == supabase.auth.currentUser?.id;
 
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      mainAxisAlignment: isMe
-                          ? MainAxisAlignment.end
-                          : MainAxisAlignment.start,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (!isMe) ...[
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                backgroundColor:
-                                    _parseColor(_userColors[post.authorId]),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                ),
+                  return VisibilityDetector(
+                    key: Key('post_${post.id}'),
+                    onVisibilityChanged: (info) {
+                      if (info.visibleFraction > 0) {
+                        _visiblePostIds.add(post.id);
+                      } else {
+                        _visiblePostIds.remove(post.id);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => PostDetailScreen(
+                                post: post,
+                                userColors: _userColors,
+                                userEmails: _userEmails,
                               ),
-                              const SizedBox(height: 4),
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  _userEmails[post.authorId] ?? '',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFFD32F2F), // 진한 빨강
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Flexible(
-                          child: Container(
-                            constraints: BoxConstraints(
-                              maxWidth:
-                                  MediaQuery.of(context).size.width * 0.75,
                             ),
-                            decoration: BoxDecoration(
-                              color: isMe
-                                  ? Color(0xFFFFCDD2)
-                                  : Colors.white, // 연빨강/흰색
-                              borderRadius: BorderRadius.only(
-                                topLeft: const Radius.circular(16),
-                                topRight: const Radius.circular(16),
-                                bottomLeft: Radius.circular(isMe ? 16 : 4),
-                                bottomRight: Radius.circular(isMe ? 4 : 16),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 5,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          );
+                          // 뒤로가기 시, 현재 보이는 게시물만 댓글 수 갱신
+                          if (result == 'refresh_comments') {
+                            final ids = _visiblePostIds.toList();
+                            await fetchCommentCounts(ids);
+                          }
+                        },
+                        child: Row(
+                          mainAxisAlignment: isMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (!isMe) ...[
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  Text(
-                                    post.content,
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: isMe
-                                          ? Color(0xFFD32F2F)
-                                          : Colors.black87,
+                                  CircleAvatar(
+                                    backgroundColor:
+                                        _parseColor(_userColors[post.authorId]),
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
-                                  Text(
-                                    _formatDate(post.createdAt),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Color(0xFFFFA000), // 노란 주황
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      _userEmails[post.authorId] ?? '',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: true,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFFBDBDBD), // 미니멀 그레이
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ),
-                        ),
-                        if (isMe) ...[
-                          const SizedBox(width: 8),
-                          Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              CircleAvatar(
-                                backgroundColor:
-                                    _parseColor(_userColors[post.authorId]),
-                                child: const Icon(
-                                  Icons.person,
-                                  color: Colors.white,
-                                  size: 20,
+                              const SizedBox(width: 8),
+                            ],
+                            Flexible(
+                              child: Container(
+                                constraints: BoxConstraints(
+                                  maxWidth:
+                                      MediaQuery.of(context).size.width * 0.75,
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              SizedBox(
-                                width: 70,
-                                child: Text(
-                                  _userEmails[post.authorId] ?? '',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  softWrap: true,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Color(0xFFD32F2F),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.04),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                  border: Border.all(
+                                    color: isMe
+                                        ? Color(0xFFFF6F00)
+                                        : Color(0xFFF5F5F5),
+                                    width: 1.2,
                                   ),
                                 ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(14),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            post.content,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: isMe
+                                                  ? Color(0xFFFF6F00)
+                                                  : Colors.black87,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            _formatDate(post.createdAt),
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: Color(0xFFBDBDBD),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      height: 1,
+                                      color: Color(0xFFF5F5F5),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(
+                                          14, 8, 0, 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.chat_bubble_outline,
+                                            size: 16,
+                                            color: Color(0xFFBDBDBD),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            '댓글 \\${_commentCounts[post.id.toString()] ?? 0}개',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Color(0xFFBDBDBD),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            if (isMe) ...[
+                              const SizedBox(width: 8),
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  CircleAvatar(
+                                    backgroundColor:
+                                        _parseColor(_userColors[post.authorId]),
+                                    child: const Icon(
+                                      Icons.person,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(
+                                      _userEmails[post.authorId] ?? '',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      softWrap: true,
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFFBDBDBD),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                        ],
-                      ],
+                          ],
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -266,11 +355,12 @@ class _PostListScreenState extends State<PostListScreen> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Color(0xFFFFA000), // 노란 주황
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 5,
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
                   offset: const Offset(0, -2),
                 ),
               ],
@@ -289,23 +379,23 @@ class _PostListScreenState extends State<PostListScreen> {
                       },
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Color(0xFFFFF8E1), // 연노랑
+                          color: Color(0xFFF5F5F5),
                           borderRadius: BorderRadius.circular(24),
                           border: Border.all(
                             color: _isFocused
-                                ? Color(0xFFD32F2F)
+                                ? Color(0xFFFF6F00)
                                 : Colors.transparent,
-                            width: 1,
+                            width: 1.2,
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: TextFormField(
                           controller: _contentController,
                           decoration: InputDecoration(
-                            hintText: '메시지를 입력하세요...',
+                            hintText: '메시지를 입력하세요...🔥',
                             border: InputBorder.none,
                             hintStyle: TextStyle(
-                              color: Color(0xFFD32F2F),
+                              color: Color(0xFFBDBDBD),
                               fontSize: 16,
                             ),
                           ),
@@ -324,13 +414,20 @@ class _PostListScreenState extends State<PostListScreen> {
                   const SizedBox(width: 8),
                   Container(
                     decoration: BoxDecoration(
-                      color: Color(0xFFD32F2F), // 진한 빨강
+                      color: Color(0xFFFF6F00),
                       borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFFFF6F00).withOpacity(0.08),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       onPressed: _submitPost,
                       icon: const Icon(
-                        Icons.send,
+                        Icons.local_fire_department,
                         color: Colors.white,
                       ),
                     ),
